@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">NexusLink</string>
+    <string name="bottom_nav_recent_call">近期通话</string>
+    <string name="bottom_nav_contact">联系人</string>
+    <string name="bottom_nav_collect">常用联系人</string>
+    <string name="bottom_nav_setting">设置</string>
+    <string name="permissions_error">请同意访问联系人以及通话记录权限</string>
+    <string name="load">加载中</string>
+    <string name="go_to_set">前往设置</string>
+    <string name="avatar">头像</string>
+
+</resources>

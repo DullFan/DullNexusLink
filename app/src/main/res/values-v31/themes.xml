@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.NexusLink" parent="android:Theme.Material.Light.NoActionBar">
+        <!--启动的背景颜色-->
+        <item name="android:windowSplashScreenBackground">#CCCCCC</item>
+        <!--LOGO-->
+        <item name="android:windowSplashScreenAnimatedIcon">
+            @drawable/ic_launcher_foreground
+        </item>
+        <!--前景颜色  -->
+        <item name="android:windowSplashScreenIconBackgroundColor">#BB86FC</item>
+        <!--底部LOGO-->
+        <item name="android:windowSplashScreenBrandingImage">
+            @drawable/ic_launcher_foreground
+        </item>
+    </style>
+</resources>
