@@ -1,7 +1,8 @@
 package com.dullfan.nexuslink.ui.page.recent_calls
 
-import com.dullfan.nexuslink.entity.ContactPersonEntity
-import com.dullfan.nexuslink.room.entity.CallLogEntity
+import com.example.communication.room.entity.CallLogEntity
+import com.example.communication.room.entity.ContactPersonEntity
+
 
 data class RecentCallState(
     val contactPersonEntityList: MutableList<ContactPersonEntity> = mutableListOf(),

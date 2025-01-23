@@ -44,6 +44,7 @@ fun MainPage(modifier: Modifier, viewModel: MainViewModel = viewModel()) {
         NavigationBarEnum.entries.size
     })
 
+    // 验证是否存在权限
     CheckPermissions()
 
     if (state.hasPermissions == false) {
@@ -121,5 +122,3 @@ internal fun CheckPermissions(
         viewModel.onIntent(MainIntent.LoadContent)
     }
 }
-
-

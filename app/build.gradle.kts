@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.ir.backend.js.getIrModuleInfoForSourceFiles
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -11,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "com.dullfan.nexuslink"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -19,6 +21,11 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags += ""
+            }
         }
     }
 
@@ -42,7 +49,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = "1.5.8"
     }
     packaging {
         resources {
@@ -51,14 +58,14 @@ android {
     }
 }
 
+
 dependencies {
-    implementation(libs.libphonenumber)
+    // TODO 测试SDK
+//    implementation(files("../app/libs/communication-release.aar"))
+
     implementation(libs.gson)
     implementation(libs.datastore)
     implementation(libs.splashscreen)
-    implementation(libs.libphonenumber.carrier)
-    implementation(libs.libphonenumber.geocoder)
-    implementation(libs.libphonenumber.prefixmapper)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -68,9 +75,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.room.runtime.compose)
-    implementation(libs.room.ktx.compose)
-    ksp(libs.room.compiler.compose)
+    implementation(libs.room.runtime)
+    implementation(project(":communication"))
     implementation(libs.lottie)
     implementation(libs.navigation.compose)
     implementation(libs.viewmodel.compose)
@@ -81,4 +87,5 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
 }

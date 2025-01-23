@@ -1,5 +1,6 @@
 package com.dullfan.nexuslink.ui.page.contact
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -29,6 +31,7 @@ import com.dullfan.nexuslink.ui.page.main.MainViewModel
 fun ContactPage(viewModel: MainViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+
     // 显示加载状态
     if (state.isContactPersonLoading) {
         LoadComponent()
@@ -40,10 +43,10 @@ fun ContactPage(viewModel: MainViewModel = viewModel()) {
         ) {
             itemsIndexed(
                 state.contactPersonEntityList,
-                key = { _, item -> item.hashCode() }
+                key = { _, item -> item.baseInfo.contactId }
             ) { _, item ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    item.avatar?.asImageBitmap()?.let { bitmap ->
+                    item.baseInfo.avatar?.asImageBitmap()?.let { bitmap ->
                         Image(
                             bitmap = bitmap,
                             contentDescription = stringResource(R.string.avatar),
@@ -52,7 +55,7 @@ fun ContactPage(viewModel: MainViewModel = viewModel()) {
                                 .clip(CircleShape)
                         )
                     }
-                    Text(text = item.disPlayName ?: "")
+                    Text(text = item.baseInfo.disPlayName ?: "")
                 }
             }
         }

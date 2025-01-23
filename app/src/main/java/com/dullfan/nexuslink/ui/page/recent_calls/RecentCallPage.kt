@@ -1,5 +1,7 @@
 package com.dullfan.nexuslink.ui.page.recent_calls
 
+import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,6 +10,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -33,9 +36,9 @@ fun RecentCallPage(viewModel: MainViewModel = viewModel()) {
         ) {
             itemsIndexed(
                 state.callLogEntityList,
-                key = { _, item -> item.hashCode() }) { _, item ->
+                key = { _, item -> item.callLogId }) { _, item ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = item.name ?: "")
+                    Text(text = item.name?.ifBlank { item.phoneNumber } ?: item.phoneNumber)
                 }
             }
         }

@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "DullNexusLink"
 include(":app")
+include(":communication")
