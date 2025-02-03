@@ -1,6 +1,7 @@
 package com.dullfan.nexuslink.ui.page.main
 
-import com.example.communication.room.entity.CallLogEntity
+import com.dullfan.nexuslink.ui.page.recent_calls.CallLogDisplayMode
+import com.dullfan.nexuslink.ui.page.recent_calls.CallLogItem
 import com.example.communication.room.entity.ContactPersonEntity
 
 
@@ -11,13 +12,13 @@ data class MainState(
      */
     val contactPersonEntityList: MutableList<ContactPersonEntity> = mutableListOf(),
     /**
-     * 最近通话List
+     * 通话记录显示模式
      */
-    val callLogEntityList: MutableList<CallLogEntity> = mutableListOf(),
+    val displayMode: CallLogDisplayMode = CallLogDisplayMode.TIMELINE,
     /**
-     * 最近通话Map
+     * 通话记录集合
      */
-    val callLogEntityMap: LinkedHashMap<String, MutableList<CallLogEntity>> = linkedMapOf(),
+    val callLogItems: List<CallLogItem> = mutableListOf(),
     /**
      * 联系人是否在加载
      */

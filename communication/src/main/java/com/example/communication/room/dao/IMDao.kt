@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Query
 import androidx.room.Upsert
+import com.example.communication.room.entity.EventEntity
 import com.example.communication.room.entity.IMEntity
 
 @Dao
@@ -17,6 +18,12 @@ interface IMDao {
 
     @Query("select * from contact_im")
     fun findAll(): MutableList<IMEntity>
+
+    @Query("SELECT * FROM contact_im ORDER BY contactId DESC LIMIT :limit")
+    fun findInitialLoadData(limit: Int): MutableList<IMEntity>
+
+    @Query("SELECT * FROM contact_im WHERE contactId < :contactId")
+    fun findByContactIdLessThan(contactId: Long): MutableList<IMEntity>
 
     @Query("select * from contact_im where contactId = :contactId")
     fun findByContactId(contactId: Long?): MutableList<IMEntity>?

@@ -19,6 +19,12 @@ interface AddressDao {
     @Query("select * from contact_address")
     fun findAll(): MutableList<AddressEntity>
 
+    @Query("SELECT * FROM contact_address ORDER BY contactId DESC LIMIT :limit")
+    fun findInitialLoadData(limit: Int): MutableList<AddressEntity>
+
+    @Query("SELECT * FROM contact_address WHERE contactId < :contactId")
+    fun findByContactIdLessThan(contactId: Long): MutableList<AddressEntity>
+
     @Query("select * from contact_address where contactId = :contactId")
     fun findByContactId(contactId: String?): MutableList<AddressEntity>?
 

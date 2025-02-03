@@ -1,8 +1,8 @@
-package com.example.communication.contact
+package com.example.communication.utils
 
 import android.database.Cursor
 
-object ContactUtilHelper {
+object ExtendUtils {
 
     fun Cursor.getStringValue(columnName: String, defString: String = ""): String {
         return try {

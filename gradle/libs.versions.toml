@@ -12,15 +12,10 @@ composeBom = "2024.11.00"
 viewmodelCompose = "2.8.7"
 navigationCompose = "2.8.4"
 
-libphonenumber = "8.13.43"
-carrier = "1.227"
-geocoder = "2.237"
-prefixmapper = "2.237"
 
 gsonVersion = "2.11.0"
 
 ksp = "2.0.21-1.0.25"
-roomCompose = "2.6.1"
 room = "2.6.1"
 lottie = "6.6.0"
 splashscreen = "1.0.1"
@@ -31,10 +26,6 @@ material = "1.12.0"
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gsonVersion" }
 datastore = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
-libphonenumber = { group = "com.googlecode.libphonenumber", name = "libphonenumber", version.ref = "libphonenumber" }
-libphonenumber-carrier = { group = "com.googlecode.libphonenumber", name = "carrier", version.ref = "carrier" }
-libphonenumber-geocoder = { group = "com.googlecode.libphonenumber", name = "geocoder", version.ref = "geocoder" }
-libphonenumber-prefixmapper = { group = "com.googlecode.libphonenumber", name = "prefixmapper", version.ref = "prefixmapper" }
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 #room-ktx-compose = { group = "androidx.room", name = "room-ktx", version.ref = "roomCompose" }
 #room-runtime-compose = { group = "androidx.room", name = "room-runtime", version.ref = "roomCompose" }

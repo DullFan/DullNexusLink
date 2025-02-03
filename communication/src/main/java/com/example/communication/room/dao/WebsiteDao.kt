@@ -19,6 +19,12 @@ interface WebsiteDao {
     @Query("select * from contact_website")
     fun findAll(): MutableList<WebsiteEntity>
 
+    @Query("SELECT * FROM contact_website ORDER BY contactId DESC LIMIT :limit")
+    fun findInitialLoadData(limit: Int): MutableList<WebsiteEntity>
+
+    @Query("SELECT * FROM contact_website WHERE contactId < :contactId")
+    fun findByContactIdLessThan(contactId: Long): MutableList<WebsiteEntity>
+
     @Query("select * from contact_website where contactId = :contactId")
     fun findByContactId(contactId: Long?): MutableList<WebsiteEntity>?
 

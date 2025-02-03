@@ -34,11 +34,6 @@ android {
 }
 
 dependencies {
-    // 手机号码归属地
-    implementation(libs.libphonenumber)
-    implementation(libs.libphonenumber.carrier)
-    implementation(libs.libphonenumber.geocoder)
-    implementation(libs.libphonenumber.prefixmapper)
     // Room
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)

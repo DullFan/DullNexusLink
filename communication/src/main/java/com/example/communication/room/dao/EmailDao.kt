@@ -18,6 +18,13 @@ interface EmailDao {
     @Query("select * from contact_email")
     fun findAll(): MutableList<EmailEntity>
 
+    @Query("SELECT * FROM contact_email ORDER BY contactId DESC LIMIT :limit")
+    fun findInitialLoadData(limit: Int): MutableList<EmailEntity>
+
+    @Query("SELECT * FROM contact_email WHERE contactId < :contactId")
+    fun findByContactIdLessThan(contactId: Long): MutableList<EmailEntity>
+
+
     @Query("select * from contact_email where contactId = :contactId")
     fun findByContactId(contactId: Long?): MutableList<EmailEntity>?
 

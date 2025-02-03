@@ -17,6 +17,12 @@ interface CallLogDao {
     @Query("select * from call_log")
     fun findAll(): MutableList<CallLogEntity>
 
+    @Query("SELECT * FROM call_log ORDER BY callLogId DESC LIMIT :limit")
+    fun findInitialLoadData(limit: Int): MutableList<CallLogEntity>
+
+    @Query("SELECT * FROM call_log WHERE callLogId < :callLogId")
+    fun findByCallLogIdLessThan(callLogId: Long): MutableList<CallLogEntity>
+
     @Query("SELECT * FROM call_log WHERE callLogId = :callLogId")
     fun findById(callLogId: Long): CallLogEntity?
 

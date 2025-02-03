@@ -18,6 +18,12 @@ interface PhoneDao {
     @Query("select * from contact_phone")
     fun findAll(): MutableList<PhoneEntity>
 
+    @Query("SELECT * FROM contact_phone ORDER BY contactId DESC LIMIT :limit")
+    fun findInitialLoadData(limit: Int): MutableList<PhoneEntity>
+
+    @Query("SELECT * FROM contact_phone WHERE contactId < :contactId")
+    fun findByContactIdLessThan(contactId: Long): MutableList<PhoneEntity>
+
     @Query("select * from contact_phone where contactId = :contactId")
     fun findByContactId(contactId: Long?): MutableList<PhoneEntity>?
 

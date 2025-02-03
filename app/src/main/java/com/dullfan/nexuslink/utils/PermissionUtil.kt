@@ -11,6 +11,7 @@ object PermissionUtil {
         Manifest.permission.READ_CALL_LOG,
         Manifest.permission.READ_CONTACTS,
         Manifest.permission.WRITE_CONTACTS,
+        Manifest.permission.READ_PHONE_STATE,
     )
 
     fun checkPermissions(context: Context): Boolean {
@@ -18,6 +19,4 @@ object PermissionUtil {
             ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
         }
     }
-
-
 }

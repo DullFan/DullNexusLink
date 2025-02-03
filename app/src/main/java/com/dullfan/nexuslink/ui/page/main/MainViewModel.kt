@@ -3,40 +3,55 @@ package com.dullfan.nexuslink.ui.page.main
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.dullfan.nexuslink.datastore.isFirstEnterApp
 import com.dullfan.nexuslink.datastore.updateFirstEnterApp
+import com.dullfan.nexuslink.ui.page.recent_calls.CallLogProcessor.processCallLogs
 import com.dullfan.nexuslink.utils.extensions.launchIO
 import com.dullfan.nexuslink.utils.extensions.launchMain
+import com.example.communication.calllog.CallLogManager
+import com.example.communication.contact.ContactManager
 import com.example.communication.room.entity.CallLogEntity
-import com.example.communication.service.CallLogService.initializeCallLogs
-import com.example.communication.service.CallLogService.loadCallLogsFromRoom
-import com.example.communication.service.CallLogService.observeCallLogs
-import com.example.communication.service.ContactService.loadAllContactPersonFromRoom
-import com.example.communication.service.ContactService.loadRemainingContacts
-import com.example.communication.service.ContactService.observeContacts
-import com.example.communication.service.ContactService.storeInitialContacts
-import com.example.communication.service.ContactService.updateContactPersonListByTimestamp
+import com.example.communication.room.entity.ContactPersonEntity
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 class MainViewModel(
     private val application: Application
 ) : AndroidViewModel(application) {
     private val _state = MutableStateFlow(MainState())
     val state: StateFlow<MainState> get() = _state
+    private val callLogManager = CallLogManager.getInstance(application)
+    private val contactManager = ContactManager.getInstance(application)
 
     /**
      * 是否第一次进入app
      */
     private var isFirstEnterApp = true
 
+    init {
+        viewModelScope.launch {
+            callLogManager.currentCallLog.collect { logs ->
+                processAndUpdateCallLogs(logs)
+            }
+        }
+        viewModelScope.launch {
+            contactManager.contacts.collect { contacts ->
+                Log.e("TAG", "${contacts.size}: ")
+                _state.value = _state.value.copy(
+                    isContactPersonLoading = false, contactPersonEntityList = contacts
+                )
+            }
+        }
+    }
+
     // 处理 Intent
     fun onIntent(intent: MainIntent) {
         when (intent) {
             is MainIntent.LoadContent -> {
-                loadContactList()
-                observeContactsChanges()
-                observeCallLogChanges()
+                loadData()
             }
 
             is MainIntent.RequestPermissions -> {
@@ -45,77 +60,35 @@ class MainViewModel(
         }
     }
 
-    private fun launchContactJob() = launchIO {
-        val initialContacts = if (isFirstEnterApp) {
-            application.storeInitialContacts()
-        } else {
-            loadAllContactPersonFromRoom()
-        }
-
-        launchMain {
-            _state.value = _state.value.copy(
-                isContactPersonLoading = false,
-                contactPersonEntityList = initialContacts
-            )
-        }
-
-        val updatedContacts = if (isFirstEnterApp) {
-            application.loadRemainingContacts()
-        } else {
-            application.updateContactPersonListByTimestamp()
-        }
-        launchMain {
-            _state.value = _state.value.copy(
-                contactPersonEntityList = updatedContacts
-            )
-        }
-
+    private fun processAndUpdateCallLogs(rawLogs: List<CallLogEntity>) {
+        val mergeCallLogs = processCallLogs(rawLogs.toMutableList(), state.value.displayMode)
+        _state.value = _state.value.copy(
+            isCallLogLoading = false, callLogItems = mergeCallLogs
+        )
     }
 
-    private fun launchCallLogJob() = launchIO {
-        val callLogMap: LinkedHashMap<String, MutableList<CallLogEntity>> = LinkedHashMap()
-        if(isFirstEnterApp){
-            application.initializeCallLogs {
-                Log.e("TAG", "launchCallLogJob:${it.size}", )
-                _state.value = _state.value.copy(
-                    isCallLogLoading = false,
-                    callLogEntityMap = callLogMap,
-                    callLogEntityList = it
-                )
-            }
-        } else {
-            application.loadCallLogsFromRoom {
-                Log.e("TAG", "launchCallLogJob:${it.size}", )
-                _state.value = _state.value.copy(
-                    isCallLogLoading = false,
-                    callLogEntityMap = callLogMap,
-                    callLogEntityList = it
-                )
-            }
-        }
-    }
-
-    private fun List<CallLogEntity>.toSortedDateMap(): LinkedHashMap<String, List<CallLogEntity>> {
-        return this
-            .groupBy { it.date }
-            .toSortedMap(compareByDescending { it })
-            .toMap(LinkedHashMap())
-    }
-
-    private fun loadContactList() {
+    private fun loadData() {
         _state.value = _state.value.copy(
             isContactPersonLoading = true, isCallLogLoading = true, hasPermissions = true
         )
-
         launchIO {
             isFirstEnterApp = application.isFirstEnterApp()
-            launchCallLogJob()
-            launchContactJob()
-
             if (isFirstEnterApp) {
+                launch { callLogManager.initialize() }
+                launch { contactManager.storeInitialContacts() }
                 application.updateFirstEnterApp()
+            } else {
+                launch { callLogManager.loadFromRoom() }
+                launch { contactManager.loadAllContactPersonFromRoom() }
+            }
+            launch {
+                callLogManager.startObserveCallLogs()
+            }
+            launch {
+                contactManager.startObserveContacts()
             }
         }
+
     }
 
     private fun noPermissions() {
@@ -123,24 +96,11 @@ class MainViewModel(
     }
 
     /**
-     * 监听通话记录变化
+     * 删除通话记录
      */
-    private fun observeCallLogChanges() {
+    fun deleteCallLog(callLogEntity: CallLogEntity) {
         launchIO {
-            application.observeCallLogs {
-                _state.emit(_state.value.copy(callLogEntityList = it))
-            }
-        }
-    }
-
-    /**
-     * 监听联系人变化
-     */
-    private fun observeContactsChanges() {
-        launchIO {
-            application.observeContacts {
-                _state.emit(_state.value.copy(contactPersonEntityList = it))
-            }
+            callLogManager.deleteCallLog(callLogEntity)
         }
     }
 }
