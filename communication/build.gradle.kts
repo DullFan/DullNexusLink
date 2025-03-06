@@ -38,6 +38,9 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+    // 获取中文首字母
+    implementation(libs.tinypinyin)
+//    implementation(libs.tinypinyin.android)
     implementation(libs.datastore)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

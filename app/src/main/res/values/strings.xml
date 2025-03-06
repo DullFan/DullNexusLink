@@ -8,5 +8,17 @@
     <string name="load">加载中</string>
     <string name="go_to_set">前往设置</string>
     <string name="avatar">头像</string>
-
+    <string name="search_contact">搜索联系人</string>
+    <string name="today">今天</string>
+    <string name="yesterday">昨天</string>
+    <string name="earlier">更早</string>
+    <string name="no_record_of_calls">暂无通话记录</string>
+    <string name="time_today">HH:mm</string>
+    <string name="time_this_week">EEE HH:mm</string>
+    <string name="date_this_year">M月d日 HH:mm</string>
+    <string name="date_other_years">yyyy/M/d</string>
+    <string name="add_contact">添加联系人</string>
+    <string name="send_message">发送信息</string>
+    <string name="record">通话历史</string>
+    <string name="video_call">视频通话</string>
 </resources>

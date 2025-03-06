@@ -8,5 +8,4 @@ data class RecentCallState(
     val contactPersonEntityList: MutableList<ContactPersonEntity> = mutableListOf(),
     val callLogEntityList: MutableList<CallLogEntity> = mutableListOf(),
     val callLogEntityMap: LinkedHashMap<String, MutableList<CallLogEntity>> = linkedMapOf(),
-    val isLoading: Boolean = false,
 )

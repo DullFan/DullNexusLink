@@ -2,8 +2,7 @@ package com.example.communication.contact
 
 import android.content.Context
 import android.provider.ContactsContract
-import android.util.Log
-import androidx.room.Dao
+import androidx.core.content.pm.ShortcutInfoCompat.Surface
 import com.example.communication.datastore.LastUpdateTimeManager.getContactTime
 import com.example.communication.datastore.LastUpdateTimeManager.updateContactTime
 import com.example.communication.room.MyRoomDatabase
@@ -18,9 +17,11 @@ import com.example.communication.room.entity.PhoneEntity
 import com.example.communication.room.entity.WebsiteEntity
 import com.example.communication.utils.SDKConstants.INITIAL_LOAD_SIZE
 import com.example.communication.utils.logTime
+import com.github.promeg.pinyinhelper.Pinyin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.withContext
+import java.util.Locale
 
 /**
  * 联系人管理器
@@ -41,7 +43,12 @@ class ContactManager(private val context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val _contacts = MutableStateFlow<MutableList<ContactPersonEntity>>(mutableListOf())
+    private val _grouped = MutableStateFlow<MutableMap<Char, MutableList<ContactPersonEntity>>>(
+        mutableMapOf()
+    )
     val contacts: StateFlow<MutableList<ContactPersonEntity>> = _contacts.asStateFlow()
+    val grouped: StateFlow<MutableMap<Char, MutableList<ContactPersonEntity>>> =
+        _grouped.asStateFlow()
 
     /**
      * 启动监听
@@ -73,57 +80,54 @@ class ContactManager(private val context: Context) {
     /**
      * 存储初始联系人数据
      */
-    suspend fun storeInitialContacts() =
-        withContext(Dispatchers.IO) {
-            logTime("初始化联系人数据-》") {
-                val contacts = queryManager.queryContacts(maxCount = INITIAL_LOAD_SIZE)
-                updateData(contacts.toMutableList())
-                upsertContactPersonRoom(contacts.toMutableList())
-                context.updateContactTime()
-                loadRemainingContacts()
-            }
+    suspend fun storeInitialContacts() = withContext(Dispatchers.IO) {
+        logTime("初始化联系人数据-》") {
+            val contacts = queryManager.queryContacts(maxCount = INITIAL_LOAD_SIZE)
+            updateData(contacts.toMutableList())
+            upsertContactPersonRoom(contacts.toMutableList())
+            context.updateContactTime()
+            loadRemainingContacts()
         }
+    }
 
 
     /**
      * 使用时间戳更新联系人数据
      */
-    private suspend fun updateContactPersonListByTimestamp() =
-        withContext(Dispatchers.IO) {
-            logTime("使用时间戳更新联系人数据-》") {
-                val lastUpdateTime = context.getContactTime()
-                val newContacts = queryManager.queryContacts(
-                    selection = "${ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP} > ?",
-                    selectionArgs = arrayOf(lastUpdateTime.toString())
-                ).toMutableList()
-                val mergeAndUpdateContacts = mergeAndUpdateContacts(newContacts)
-                updateData(mergeAndUpdateContacts)
-            }
+    private suspend fun updateContactPersonListByTimestamp() = withContext(Dispatchers.IO) {
+        logTime("使用时间戳更新联系人数据-》") {
+            val lastUpdateTime = context.getContactTime()
+            val newContacts = queryManager.queryContacts(
+                selection = "${ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP} > ?",
+                selectionArgs = arrayOf(lastUpdateTime.toString())
+            ).toMutableList()
+            val mergeAndUpdateContacts = mergeAndUpdateContacts(newContacts)
+            updateData(mergeAndUpdateContacts)
         }
+    }
 
     /**
      * 加载剩余联系人数据
      */
-    private suspend fun loadRemainingContacts() =
-        withContext(Dispatchers.IO) {
-            val currentContacts = getData()
-            if (currentContacts.isEmpty()) {
-                updateData(currentContacts)
-                return@withContext
-            }
-
-            val maxContactId = currentContacts.maxOf { it.baseInfo.contactId }
-            val remainingContacts = queryManager.queryContacts(
-                selection = "${ContactsContract.Data.CONTACT_ID} > ?",
-                selectionArgs = arrayOf(maxContactId.toString())
-            )
-
-            if (remainingContacts.isNotEmpty()) {
-                upsertContactPersonRoom(remainingContacts.toMutableList())
-                currentContacts.addAll(remainingContacts)
-                updateData(currentContacts)
-            }
+    private suspend fun loadRemainingContacts() = withContext(Dispatchers.IO) {
+        val currentContacts = getData()
+        if (currentContacts.isEmpty()) {
+            updateData(currentContacts)
+            return@withContext
         }
+
+        val maxContactId = currentContacts.maxOf { it.baseInfo.contactId }
+        val remainingContacts = queryManager.queryContacts(
+            selection = "${ContactsContract.Data.CONTACT_ID} > ?",
+            selectionArgs = arrayOf(maxContactId.toString())
+        )
+
+        if (remainingContacts.isNotEmpty()) {
+            upsertContactPersonRoom(remainingContacts.toMutableList())
+            currentContacts.addAll(remainingContacts)
+            updateData(currentContacts)
+        }
+    }
 
     /**
      * 监听联系人变化
@@ -154,44 +158,43 @@ class ContactManager(private val context: Context) {
      */
     private suspend fun mergeAndUpdateContacts(
         newContacts: MutableList<ContactPersonEntity>
-    ): MutableList<ContactPersonEntity> =
-        withContext(Dispatchers.IO) {
-            val currentContacts = getData()
-            val currentContactsMap = currentContacts.associateBy { it.baseInfo.contactId }
+    ): MutableList<ContactPersonEntity> = withContext(Dispatchers.IO) {
+        val currentContacts = getData()
+        val currentContactsMap = currentContacts.associateBy { it.baseInfo.contactId }
 
-            if (newContacts.isNotEmpty()) {
-                val (updateContacts, addContacts) = newContacts.partition {
-                    currentContactsMap.containsKey(it.baseInfo.contactId)
-                }
+        if (newContacts.isNotEmpty()) {
+            val (updateContacts, addContacts) = newContacts.partition {
+                currentContactsMap.containsKey(it.baseInfo.contactId)
+            }
 
-                if (addContacts.isNotEmpty()) {
-                    currentContacts.addAll(addContacts)
-                }
+            if (addContacts.isNotEmpty()) {
+                currentContacts.addAll(addContacts)
+            }
 
-                updateContacts.forEach { newContact ->
-                    currentContactsMap[newContact.baseInfo.contactId]?.let { oldContact ->
-                        val index = currentContacts.indexOf(oldContact)
-                        if (index != -1) {
-                            currentContacts[index] = newContact
-                        }
+            updateContacts.forEach { newContact ->
+                currentContactsMap[newContact.baseInfo.contactId]?.let { oldContact ->
+                    val index = currentContacts.indexOf(oldContact)
+                    if (index != -1) {
+                        currentContacts[index] = newContact
                     }
                 }
-
-                upsertContactPersonRoom(newContacts)
             }
 
-            val systemIds = queryManager.queryAllContactIds().toSet()
-            val idsToDelete =
-                currentContacts.map { it.baseInfo.contactId }.filter { !systemIds.contains(it) }
-
-            if (idsToDelete.isNotEmpty()) {
-                deleteContactPersonByContactIds(idsToDelete)
-                currentContacts.removeAll { it.baseInfo.contactId in idsToDelete }
-            }
-
-            context.updateContactTime()
-            currentContacts
+            upsertContactPersonRoom(newContacts)
         }
+
+        val systemIds = queryManager.queryAllContactIds().toSet()
+        val idsToDelete =
+            currentContacts.map { it.baseInfo.contactId }.filter { !systemIds.contains(it) }
+
+        if (idsToDelete.isNotEmpty()) {
+            deleteContactPersonByContactIds(idsToDelete)
+            currentContacts.removeAll { it.baseInfo.contactId in idsToDelete }
+        }
+
+        context.updateContactTime()
+        currentContacts
+    }
 
 
     /**
@@ -199,88 +202,106 @@ class ContactManager(private val context: Context) {
      */
     private suspend fun upsertContactPersonRoom(
         list: MutableList<ContactPersonEntity>
-    ) =
-        withContext(Dispatchers.IO) {
-            list.forEach {
-                myRoomDatabase.addressDao().upsert(*it.addresses.toTypedArray())
-                myRoomDatabase.emailDao().upsert(*it.emails.toTypedArray())
-                myRoomDatabase.eventDao().upsert(*it.events.toTypedArray())
-                myRoomDatabase.iMDao().upsert(*it.ims.toTypedArray())
-                myRoomDatabase.organizationsDao().upsert(*it.organizations.toTypedArray())
-                myRoomDatabase.phoneDao().upsert(*it.phones.toTypedArray())
-                myRoomDatabase.websiteDao().upsert(*it.websites.toTypedArray())
-                myRoomDatabase.contactPersonDao().upsert(it.baseInfo)
-            }
+    ) = withContext(Dispatchers.IO) {
+        list.forEach {
+            myRoomDatabase.addressDao().upsert(*it.addresses.toTypedArray())
+            myRoomDatabase.emailDao().upsert(*it.emails.toTypedArray())
+            myRoomDatabase.eventDao().upsert(*it.events.toTypedArray())
+            myRoomDatabase.iMDao().upsert(*it.ims.toTypedArray())
+            myRoomDatabase.organizationsDao().upsert(*it.organizations.toTypedArray())
+            myRoomDatabase.phoneDao().upsert(*it.phones.toTypedArray())
+            myRoomDatabase.websiteDao().upsert(*it.websites.toTypedArray())
+            myRoomDatabase.contactPersonDao().upsert(it.baseInfo)
         }
+    }
 
     suspend fun deleteContactPersonByContactIds(
         list: List<Long>
-    ) =
-        withContext(Dispatchers.IO) {
-            myRoomDatabase.addressDao().deleteByContactIds(list)
-            myRoomDatabase.emailDao().deleteByContactIds(list)
-            myRoomDatabase.eventDao().deleteByContactIds(list)
-            myRoomDatabase.iMDao().deleteByContactIds(list)
-            myRoomDatabase.organizationsDao().deleteByContactIds(list)
-            myRoomDatabase.phoneDao().deleteByContactIds(list)
-            myRoomDatabase.websiteDao().deleteByContactIds(list)
-            myRoomDatabase.contactPersonDao().deleteByContactIds(list)
-        }
+    ) = withContext(Dispatchers.IO) {
+        myRoomDatabase.addressDao().deleteByContactIds(list)
+        myRoomDatabase.emailDao().deleteByContactIds(list)
+        myRoomDatabase.eventDao().deleteByContactIds(list)
+        myRoomDatabase.iMDao().deleteByContactIds(list)
+        myRoomDatabase.organizationsDao().deleteByContactIds(list)
+        myRoomDatabase.phoneDao().deleteByContactIds(list)
+        myRoomDatabase.websiteDao().deleteByContactIds(list)
+        myRoomDatabase.contactPersonDao().deleteByContactIds(list)
+    }
 
-    suspend fun deleteContactPersonByContactId(contactId: Long) =
-        withContext(Dispatchers.IO) {
-            myRoomDatabase.addressDao().deleteContactById(contactId)
-            myRoomDatabase.emailDao().deleteContactById(contactId)
-            myRoomDatabase.eventDao().deleteContactById(contactId)
-            myRoomDatabase.iMDao().deleteContactById(contactId)
-            myRoomDatabase.organizationsDao().deleteContactById(contactId)
-            myRoomDatabase.phoneDao().deleteContactById(contactId)
-            myRoomDatabase.websiteDao().deleteContactById(contactId)
-            myRoomDatabase.contactPersonDao().deleteContactById(contactId)
-        }
+    suspend fun deleteContactPersonByContactId(contactId: Long) = withContext(Dispatchers.IO) {
+        myRoomDatabase.addressDao().deleteContactById(contactId)
+        myRoomDatabase.emailDao().deleteContactById(contactId)
+        myRoomDatabase.eventDao().deleteContactById(contactId)
+        myRoomDatabase.iMDao().deleteContactById(contactId)
+        myRoomDatabase.organizationsDao().deleteContactById(contactId)
+        myRoomDatabase.phoneDao().deleteContactById(contactId)
+        myRoomDatabase.websiteDao().deleteContactById(contactId)
+        myRoomDatabase.contactPersonDao().deleteContactById(contactId)
+    }
 
     /**
-     * 添加async，看DS的代码
      * TODO 待优化
      */
     suspend fun loadAllContactPersonFromRoom() = withContext(Dispatchers.IO) {
         logTime("从Room中获取联系人-》") {
-            // 使用辅助函数加载所有数据
-            val contacts =
-                myRoomDatabase.contactPersonDao().findInitialLoadData(INITIAL_LOAD_SIZE)
-            val addresses = myRoomDatabase.addressDao().findInitialLoadData(INITIAL_LOAD_SIZE)
-            val emails = myRoomDatabase.emailDao().findInitialLoadData(INITIAL_LOAD_SIZE)
-            val events = myRoomDatabase.eventDao().findInitialLoadData(INITIAL_LOAD_SIZE)
-            val ims = myRoomDatabase.iMDao().findInitialLoadData(INITIAL_LOAD_SIZE)
-            val organizations =
-                myRoomDatabase.organizationsDao().findInitialLoadData(INITIAL_LOAD_SIZE)
-            val phones = myRoomDatabase.phoneDao().findInitialLoadData(INITIAL_LOAD_SIZE)
-            val websites = myRoomDatabase.websiteDao().findInitialLoadData(INITIAL_LOAD_SIZE)
+            val contactsDeferred =
+                async { myRoomDatabase.contactPersonDao().findInitialLoadData(INITIAL_LOAD_SIZE) }
+            val addressesDeferred =
+                async { myRoomDatabase.addressDao().findInitialLoadData(INITIAL_LOAD_SIZE) }
+            val emailsDeferred =
+                async { myRoomDatabase.emailDao().findInitialLoadData(INITIAL_LOAD_SIZE) }
+            val eventsDeferred =
+                async { myRoomDatabase.eventDao().findInitialLoadData(INITIAL_LOAD_SIZE) }
+            val imsDeferred =
+                async { myRoomDatabase.iMDao().findInitialLoadData(INITIAL_LOAD_SIZE) }
+            val organizationsDeferred =
+                async { myRoomDatabase.organizationsDao().findInitialLoadData(INITIAL_LOAD_SIZE) }
+            val phonesDeferred =
+                async { myRoomDatabase.phoneDao().findInitialLoadData(INITIAL_LOAD_SIZE) }
+            val websitesDeferred =
+                async { myRoomDatabase.websiteDao().findInitialLoadData(INITIAL_LOAD_SIZE) }
 
-            // 构建联系人数据
+            val contacts = contactsDeferred.await()
+            val addresses = addressesDeferred.await()
+            val emails = emailsDeferred.await()
+            val events = eventsDeferred.await()
+            val ims = imsDeferred.await()
+            val organizations = organizationsDeferred.await()
+            val phones = phonesDeferred.await()
+            val websites = websitesDeferred.await()
+
             val list = buildContactPersonList(
                 contacts, addresses, emails, events, ims, organizations, phones, websites
             )
 
             updateData(list)
 
-            // 获取剩余的数据
-            val contactsAll = myRoomDatabase.contactPersonDao()
-                .findByContactIdLessThan(contacts.last().contactId)
-            val addressesAll =
-                myRoomDatabase.addressDao().findByContactIdLessThan(contacts.last().contactId)
-            val emailsAll =
-                myRoomDatabase.emailDao().findByContactIdLessThan(contacts.last().contactId)
-            val eventsAll =
-                myRoomDatabase.eventDao().findByContactIdLessThan(contacts.last().contactId)
-            val imsAll =
-                myRoomDatabase.iMDao().findByContactIdLessThan(contacts.last().contactId)
-            val organizationsAll = myRoomDatabase.organizationsDao()
-                .findByContactIdLessThan(contacts.last().contactId)
-            val phonesAll =
-                myRoomDatabase.phoneDao().findByContactIdLessThan(contacts.last().contactId)
-            val websitesAll =
-                myRoomDatabase.websiteDao().findByContactIdLessThan(contacts.last().contactId)
+            val lastContactId = contacts.lastOrNull()?.contactId ?: return@withContext
+            val contactsAllDeferred =
+                async { myRoomDatabase.contactPersonDao().findByContactIdLessThan(lastContactId) }
+            val addressesAllDeferred =
+                async { myRoomDatabase.addressDao().findByContactIdLessThan(lastContactId) }
+            val emailsAllDeferred =
+                async { myRoomDatabase.emailDao().findByContactIdLessThan(lastContactId) }
+            val eventsAllDeferred =
+                async { myRoomDatabase.eventDao().findByContactIdLessThan(lastContactId) }
+            val imsAllDeferred =
+                async { myRoomDatabase.iMDao().findByContactIdLessThan(lastContactId) }
+            val organizationsAllDeferred =
+                async { myRoomDatabase.organizationsDao().findByContactIdLessThan(lastContactId) }
+            val phonesAllDeferred =
+                async { myRoomDatabase.phoneDao().findByContactIdLessThan(lastContactId) }
+            val websitesAllDeferred =
+                async { myRoomDatabase.websiteDao().findByContactIdLessThan(lastContactId) }
+
+            val contactsAll = contactsAllDeferred.await()
+            val addressesAll = addressesAllDeferred.await()
+            val emailsAll = emailsAllDeferred.await()
+            val eventsAll = eventsAllDeferred.await()
+            val imsAll = imsAllDeferred.await()
+            val organizationsAll = organizationsAllDeferred.await()
+            val phonesAll = phonesAllDeferred.await()
+            val websitesAll = websitesAllDeferred.await()
 
             val listAll = buildContactPersonList(
                 contactsAll,
@@ -342,7 +363,33 @@ class ContactManager(private val context: Context) {
 
     private fun updateData(list: MutableList<ContactPersonEntity>) {
         nameSort(list)
+        val groupedContacts = mutableMapOf<Char, MutableList<ContactPersonEntity>>()
+
+        for (contact in list) {
+            val initial = getInitial(contact.baseInfo.disPlayName)
+
+            if (!groupedContacts.containsKey(initial)) {
+                groupedContacts[initial] = mutableListOf()
+            }
+            groupedContacts[initial]?.add(contact)
+        }
+
+        // 按键排序
+        val sortedGroupedContacts = groupedContacts.toSortedMap()
+
+        // 更新状态
         _contacts.value = list
+        _grouped.value = sortedGroupedContacts
+    }
+
+    private fun getInitial(displayName: String): Char {
+        val pinyin = Pinyin.toPinyin(displayName, "").uppercase(Locale.getDefault())
+        val firstChar = pinyin.firstOrNull() ?: return '#'
+        return if (firstChar.isLetter()) {
+            firstChar
+        } else {
+            '#'
+        }
     }
 
     private fun getData() = _contacts.value.toMutableList()

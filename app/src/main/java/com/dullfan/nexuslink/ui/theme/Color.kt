@@ -1,6 +1,29 @@
 package com.dullfan.nexuslink.ui.theme
 import androidx.compose.ui.graphics.Color
 
+val color1 = Color(0xFF03A9F4)
+val color2 = Color(0xFF00BCD4)
+val color3 = Color(0xFF009688)
+val color4 = Color(0xFFF44336)
+val color5 = Color(0xFFFFC107)
+val color6 = Color(0xFFFF5722)
+val color7 = Color(0xFFFF9800)
+val color8 = Color(0xFF8BC34A)
+
+fun darkenColorByAlpha(color: Color, alphaFactor: Float = 0.6f): Color {
+    return color.copy(alpha = alphaFactor)
+}
+
+val darkColor1 = darkenColorByAlpha(color1)
+val darkColor2 = darkenColorByAlpha(color2)
+val darkColor3 = darkenColorByAlpha(color3)
+val darkColor4 = darkenColorByAlpha(color4)
+val darkColor5 = darkenColorByAlpha(color5)
+val darkColor6 = darkenColorByAlpha(color6)
+val darkColor7 = darkenColorByAlpha(color7)
+val darkColor8 = darkenColorByAlpha(color8)
+
+
 val primaryLight = Color(0xFF0061A5)
 val onPrimaryLight = Color(0xFFFFFFFF)
 val primaryContainerLight = Color(0xFF4AA6FF)
@@ -21,7 +44,7 @@ val backgroundLight = Color(0xFFF8F9FF)
 val onBackgroundLight = Color(0xFF171C22)
 val surfaceLight = Color(0xFFF8F9FF)
 val onSurfaceLight = Color(0xFF171C22)
-val surfaceVariantLight = Color(0xFFDBE3F1)
+val surfaceVariantLight = Color(0xFFDEE5F1)
 val onSurfaceVariantLight = Color(0xFF3F4753)
 val outlineLight = Color(0xFF707884)
 val outlineVariantLight = Color(0xFFBFC7D5)

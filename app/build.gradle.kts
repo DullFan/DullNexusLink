@@ -63,6 +63,7 @@ dependencies {
     // TODO 测试SDK
 //    implementation(files("../app/libs/communication-release.aar"))
 
+
     implementation(libs.gson)
     implementation(libs.datastore)
     implementation(libs.splashscreen)

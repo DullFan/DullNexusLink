@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.dullfan.nexuslink.datastore.getCallLogDisplayModeAsString
 import com.dullfan.nexuslink.datastore.isFirstEnterApp
 import com.dullfan.nexuslink.datastore.updateFirstEnterApp
 import com.dullfan.nexuslink.ui.page.recent_calls.CallLogProcessor.processCallLogs
@@ -38,10 +39,14 @@ class MainViewModel(
             }
         }
         viewModelScope.launch {
-            contactManager.contacts.collect { contacts ->
-                Log.e("TAG", "${contacts.size}: ")
+            contactManager.grouped.collect { grouped ->
+                processAndUpdateContactInitial(grouped)
+            }
+        }
+        viewModelScope.launch {
+            application.getCallLogDisplayModeAsString().collect {
                 _state.value = _state.value.copy(
-                    isContactPersonLoading = false, contactPersonEntityList = contacts
+                    displayMode = it
                 )
             }
         }
@@ -65,6 +70,10 @@ class MainViewModel(
         _state.value = _state.value.copy(
             isCallLogLoading = false, callLogItems = mergeCallLogs
         )
+    }
+
+    private fun processAndUpdateContactInitial(contactsInitial: MutableMap<Char,MutableList<ContactPersonEntity>>) {
+        _state.value = _state.value.copy(contactInitialsMap = contactsInitial, isContactPersonLoading = false)
     }
 
     private fun loadData() {

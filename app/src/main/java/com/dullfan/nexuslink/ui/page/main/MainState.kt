@@ -10,7 +10,7 @@ data class MainState(
     /**
      * 联系人数据
      */
-    val contactPersonEntityList: MutableList<ContactPersonEntity> = mutableListOf(),
+    val contactInitialsMap: MutableMap<Char,MutableList<ContactPersonEntity>> = mutableMapOf(),
     /**
      * 通话记录显示模式
      */

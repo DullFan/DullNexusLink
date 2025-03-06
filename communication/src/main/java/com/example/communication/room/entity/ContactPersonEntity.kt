@@ -14,7 +14,7 @@ data class ContactPersonEntity(
     var addresses: MutableList<AddressEntity> = mutableListOf(),
     var organizations: MutableList<OrganizationsEntity> = mutableListOf(),
     var events: MutableList<EventEntity> = mutableListOf(),
-    var websites: MutableList<WebsiteEntity> = mutableListOf()
+    var websites: MutableList<WebsiteEntity> = mutableListOf(),
 )
 
 @Entity(tableName = "contact_phone")

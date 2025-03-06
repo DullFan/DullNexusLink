@@ -32,9 +32,6 @@ class RecentCallPageViewModel(
 
     }
 
-    fun setLoading(isLoading: Boolean) {
-        _state.value = _state.value.copy(isLoading = isLoading)
-    }
 
 }
 
